@@ -42,5 +42,7 @@ if __name__ == "__main__":
         app.debug = True
 
     # Get port form environment or default to 5000
-    PORT = int(os.getenv('PORT', 5000))
-    app.run(port=PORT)
+    PORT = int(os.getenv("PORT", 5000))
+    # Check for env. variable or start on localhost
+    INTERFACE = os.getenv("INTERFACE", "localhost")
+    app.run(host=INTERFACE, port=PORT)
