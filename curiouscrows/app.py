@@ -4,22 +4,66 @@ import os
 
 from flask import Flask, render_template
 
-from bokeh.plotting import figure
+from bokeh.plotting import figure, show, ColumnDataSource
 from bokeh.embed import components
+from bokeh.models import HoverTool
+
+from sklearn.preprocessing import Imputer, scale
+from sklearn.decomposition import PCA
+
+import pandas as pd
+import numpy as np
+import gzip
 
 app = Flask(__name__)
-
 
 @app.route('/')
 def index():
 
-    y = [random.random() for n in range(50)]
-    x = [random.random() for n in range(50)]
+    #y = [random.random() for n in range(50)]
+    #x = [random.random() for n in range(50)]
 
-    p = figure(title='A Bokeh plot',
-               plot_width=500,
-               plot_height=400)
-    p.circle(x, y)
+    d = pd.read_csv(gzip.open("../data/data.csv.gz"),sep="\t")
+    mx = d.pivot(index='municipality_name', columns='kpi', values='value')
+    
+    # Imputation. First replace 'None' string with NaN
+    mis = mx == 'None'
+    mx[mis] = np.nan
+
+    imp = Imputer(strategy="mean", axis=1)
+    imp.fit(mx)
+    # Impute mean values
+    df = pd.DataFrame(imp.transform(mx),index=mx.index)
+    colvar = df.var(axis=0)
+    # Remove constant columns
+    df2 = df[colvar[colvar>0.01].index]
+    # Scale values
+    df3 = pd.DataFrame(scale(df2), index=mx.index)
+
+    pca = PCA(n_components=2)
+    pc = pca.fit(df3).transform(df3)
+    
+    hover = HoverTool(
+        tooltips=[
+            ("index", "$index"),
+            ("(x,y)", "($x, $y)"),
+            ("desc", "@desc"),
+        ]
+    )
+
+    source = ColumnDataSource(
+        data=dict(
+            x=pc[:,0],
+            y=pc[:,1],
+            desc=df3.index,
+        )
+    )
+
+    #p = figure(title='PCA plot', plot_width=500, plot_height=400) 
+    p = figure(title='PCA plot', plot_width=500, plot_height=400, tools=[hover]) 
+    
+    p.circle('x', 'y', source=source)
+    #p.circle(x, y)
 
     p.xaxis.axis_label = "x"
     p.yaxis.axis_label = "y"
@@ -28,7 +72,6 @@ def index():
 
     return(render_template(
         "figures.html",
-        y=y,
         figJS=figJS,
         figDiv=figDiv))
 
