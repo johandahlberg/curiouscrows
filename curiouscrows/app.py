@@ -1,10 +1,10 @@
-import random
+
 import argparse
 import os
 
 from flask import Flask, render_template
 
-from bokeh.plotting import figure, show, ColumnDataSource
+from bokeh.plotting import figure, ColumnDataSource
 from bokeh.embed import components
 from bokeh.models import HoverTool
 
@@ -15,17 +15,15 @@ import pandas as pd
 import numpy as np
 import gzip
 
+
+
 app = Flask(__name__)
 
-@app.route('/')
-def index():
 
-    #y = [random.random() for n in range(50)]
-    #x = [random.random() for n in range(50)]
-
-    d = pd.read_csv(gzip.open("../data/data.csv.gz"),sep="\t")
+def compute_principal_components():
+    d = pd.read_csv(gzip.open("data/data.csv.gz"), sep="\t")
     mx = d.pivot(index='municipality_name', columns='kpi', values='value')
-    
+
     # Imputation. First replace 'None' string with NaN
     mis = mx == 'None'
     mx[mis] = np.nan
@@ -42,7 +40,13 @@ def index():
 
     pca = PCA(n_components=2)
     pc = pca.fit(df3).transform(df3)
-    
+    return(df3, pc)
+
+df3, pc = compute_principal_components()
+
+@app.route('/')
+def index():
+
     hover = HoverTool(
         tooltips=[
             ("index", "$index"),
@@ -59,22 +63,19 @@ def index():
         )
     )
 
-    #p = figure(title='PCA plot', plot_width=500, plot_height=400) 
-    p = figure(title='PCA plot', plot_width=500, plot_height=400, tools=[hover]) 
-    
+    p = figure(title='PCA plot', plot_width=500, plot_height=400, tools=[hover])
+
     p.circle('x', 'y', source=source)
-    #p.circle(x, y)
 
     p.xaxis.axis_label = "x"
     p.yaxis.axis_label = "y"
 
-    figJS, figDiv = components(p)
+    fig_js, fig_div = components(p)
 
     return(render_template(
         "figures.html",
-        figJS=figJS,
-        figDiv=figDiv))
-
+        figJS=fig_js,
+        figDiv=fig_div))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process some integers.")
