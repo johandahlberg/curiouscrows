@@ -1,6 +1,9 @@
 
+
+import logging
 import argparse
 import os
+import sys
 
 from flask import Flask, render_template
 
@@ -13,20 +16,21 @@ from sklearn.decomposition import PCA
 
 import pandas as pd
 import numpy as np
-import gzip
 
-
+from sqlalchemy import create_engine
 
 app = Flask(__name__)
+log = app.logger
+
+connection_string = os.getenv("DB_CONNECT_STRING")
+engine = create_engine(connection_string)
 
 
 def compute_principal_components():
-    d = pd.read_csv(gzip.open("data/data.csv.gz"), sep="\t")
+    log.debug("Computing principal components")
+    d = pd.read_sql_table("data", engine,
+                          columns=["kpi", "period", "municipality_id",  "municipality_name", "value", "kpi_desc"])
     mx = d.pivot(index='municipality_name', columns='kpi', values='value')
-
-    # Imputation. First replace 'None' string with NaN
-    mis = mx == 'None'
-    mx[mis] = np.nan
 
     imp = Imputer(strategy="mean", axis=1)
     imp.fit(mx)
@@ -40,7 +44,9 @@ def compute_principal_components():
 
     pca = PCA(n_components=2)
     pc = pca.fit(df3).transform(df3)
-    return(df3, pc)
+    log.debug("Finished computing principal compoments")
+    return df3, pc
+
 
 df3, pc = compute_principal_components()
 
@@ -84,6 +90,7 @@ if __name__ == "__main__":
 
     if args.debug:
         app.debug = True
+        app.logger.setLevel(logging.DEBUG)
 
     # Get port form environment or default to 5000
     PORT = int(os.getenv("PORT", 5000))
