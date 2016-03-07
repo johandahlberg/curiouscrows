@@ -9,7 +9,7 @@ from flask import Flask, render_template
 
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.embed import components
-from bokeh.models import HoverTool
+from bokeh.models import HoverTool, BoxZoomTool, ResetTool, TapTool, CustomJS
 
 from sklearn.preprocessing import Imputer, scale
 from sklearn.decomposition import PCA
@@ -22,14 +22,14 @@ from sqlalchemy import create_engine
 app = Flask(__name__)
 log = app.logger
 
-connection_string = os.getenv("DB_CONNECT_STRING")
+connection_string = os.getenv("DATABASE_URL")
 engine = create_engine(connection_string)
 
 
 def compute_principal_components():
     log.debug("Computing principal components")
     d = pd.read_sql_table("data", engine,
-                          columns=["kpi", "period", "municipality_id",  "municipality_name", "value", "kpi_desc"])
+                          columns=["kpi", "municipality_name", "value"])
     mx = d.pivot(index='municipality_name', columns='kpi', values='value')
 
     imp = Imputer(strategy="mean", axis=1)
@@ -48,30 +48,30 @@ def compute_principal_components():
     return df3, pc
 
 
-df3, pc = compute_principal_components()
+#df3, pc = compute_principal_components()
 
 @app.route('/')
 def index():
 
-    hover = HoverTool(
-        tooltips=[
-            ("index", "$index"),
-            ("(x,y)", "($x, $y)"),
-            ("desc", "@desc"),
-        ]
-    )
+    callback = CustomJS(args=None, code="""
+        console.log("This is a custom callback!");
+    """)
+
+    tools = [HoverTool(
+        tooltips=[("Kommun", "@desc")]), BoxZoomTool(), ResetTool(), TapTool(callback=callback)]
+
+    d = pd.read_sql_table("data", engine, columns=["x", "y"])
 
     source = ColumnDataSource(
         data=dict(
-            x=pc[:,0],
-            y=pc[:,1],
-            desc=df3.index,
+            x=d["x"],
+            y=d["y"]
         )
     )
 
-    p = figure(title='PCA plot', plot_width=500, plot_height=400, tools=[hover])
+    p = figure(title='PCA plot', plot_width=800, plot_height=500, tools=tools)
 
-    p.circle('x', 'y', source=source)
+    p.circle('x', 'y', source=source, alpha=0.5)
 
     p.xaxis.axis_label = "x"
     p.yaxis.axis_label = "y"
