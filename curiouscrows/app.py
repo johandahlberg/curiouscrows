@@ -16,21 +16,27 @@ from sklearn.decomposition import PCA
 
 import pandas as pd
 import numpy as np
+import gzip
 
 from sqlalchemy import create_engine
 
 app = Flask(__name__)
 log = app.logger
 
-connection_string = os.getenv("DATABASE_URL")
-engine = create_engine(connection_string)
+# connection_string = os.getenv("DATABASE_URL")
+# engine = create_engine(connection_string)
 
 
 def compute_principal_components():
     log.debug("Computing principal components")
-    d = pd.read_sql_table("data", engine,
-                          columns=["kpi", "municipality_name", "value"])
+    # d = pd.read_sql_table("data", engine,
+    #                       columns=["kpi", "municipality_name", "value"])
+    d = pd.read_csv(gzip.open("data/data.csv.gz"),sep="\t")
     mx = d.pivot(index='municipality_name', columns='kpi', values='value')
+
+    # Imputation. First replace 'None' string with NaN
+    mis = mx == 'None'
+    mx[mis] = np.nan
 
     imp = Imputer(strategy="mean", axis=1)
     imp.fit(mx)
@@ -48,24 +54,24 @@ def compute_principal_components():
     return df3, pc
 
 
-#df3, pc = compute_principal_components()
+df3, pc = compute_principal_components()
 
 @app.route('/')
 def index():
 
-    callback = CustomJS(args=None, code="""
-        console.log("This is a custom callback!");
-    """)
-
     tools = [HoverTool(
-        tooltips=[("Kommun", "@desc")]), BoxZoomTool(), ResetTool(), TapTool(callback=callback)]
-
-    d = pd.read_sql_table("data", engine, columns=["x", "y"])
+        tooltips=[
+            ("index", "$index"),
+            ("(x,y)", "($x, $y)"),
+            ("desc", "@desc"),
+        ]
+    )]
 
     source = ColumnDataSource(
         data=dict(
-            x=d["x"],
-            y=d["y"]
+            x=pc[:,0],
+            y=pc[:,1],
+            desc=df3.index,
         )
     )
 
