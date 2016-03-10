@@ -81,8 +81,10 @@ def index():
     taptool = p.select(type=TapTool)
     taptool.callback = CustomJS(code="""
         var index = cb_obj.get('selected')['1d'].indices[0];
-        var desc = cb_obj.get('data').desc[index];
-        history.pushState({}, '', '#' + desc);
+        if (index !== undefined) {
+            var desc = cb_obj.get('data').desc[index];
+            history.pushState({}, '', '#' + desc);
+        }
     """)
 
     fig_js, fig_div = components(p)
