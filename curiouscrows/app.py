@@ -1,15 +1,12 @@
-
-
 import logging
 import argparse
 import os
-import sys
 
 from flask import Flask, render_template
 
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.embed import components
-from bokeh.models import HoverTool, BoxZoomTool, ResetTool, TapTool, CustomJS
+from bokeh.models import (HoverTool, BoxZoomTool, ResetTool, TapTool, CustomJS)
 
 from sklearn.preprocessing import Imputer, scale
 from sklearn.decomposition import PCA
@@ -17,8 +14,6 @@ from sklearn.decomposition import PCA
 import pandas as pd
 import numpy as np
 import gzip
-
-from sqlalchemy import create_engine
 
 app = Flask(__name__)
 log = app.logger
@@ -31,7 +26,7 @@ def compute_principal_components():
     log.debug("Computing principal components")
     # d = pd.read_sql_table("data", engine,
     #                       columns=["kpi", "municipality_name", "value"])
-    d = pd.read_csv(gzip.open("data/data.csv.gz"),sep="\t")
+    d = pd.read_csv(gzip.open("data/data.csv.gz"), sep="\t")
     mx = d.pivot(index='municipality_name', columns='kpi', values='value')
 
     # Imputation. First replace 'None' string with NaN
@@ -41,10 +36,10 @@ def compute_principal_components():
     imp = Imputer(strategy="mean", axis=1)
     imp.fit(mx)
     # Impute mean values
-    df = pd.DataFrame(imp.transform(mx),index=mx.index)
+    df = pd.DataFrame(imp.transform(mx), index=mx.index)
     colvar = df.var(axis=0)
     # Remove constant columns
-    df2 = df[colvar[colvar>0.01].index]
+    df2 = df[colvar[colvar > 0.01].index]
     # Scale values
     df3 = pd.DataFrame(scale(df2), index=mx.index)
 
@@ -56,6 +51,7 @@ def compute_principal_components():
 
 df3, pc = compute_principal_components()
 
+
 @app.route('/')
 def index():
 
@@ -65,12 +61,12 @@ def index():
             ("(x,y)", "($x, $y)"),
             ("desc", "@desc"),
         ]
-    )]
+    ), BoxZoomTool(), ResetTool(), TapTool()]
 
     source = ColumnDataSource(
         data=dict(
-            x=pc[:,0],
-            y=pc[:,1],
+            x=pc[:, 0],
+            y=pc[:, 1],
             desc=df3.index,
         )
     )
@@ -81,6 +77,13 @@ def index():
 
     p.xaxis.axis_label = "x"
     p.yaxis.axis_label = "y"
+
+    taptool = p.select(type=TapTool)
+    taptool.callback = CustomJS(code="""
+        var index = cb_obj.get('selected')['1d'].indices[0];
+        var desc = cb_obj.get('data').desc[index];
+        history.pushState({}, '', '#' + desc);
+    """)
 
     fig_js, fig_div = components(p)
 
