@@ -1,0 +1,76 @@
+---
+
+- hosts: tag_Name_webserver
+  user: ubuntu
+  become_method: sudo
+
+  vars:
+    app_name: curiouscrows
+    repo_url: https://github.com/johandahlberg/curiouscrows
+    repo_remote: origin
+    repo_version: master
+    webapps_dir: /home/ubuntu/webapps
+    wsgi_file: wsgi.py
+    wsgi_callable: app
+
+  tasks:
+    - name: ensure webapps dir exits
+      file:
+        dest: "{{webapps_dir}}/{{ app_name }}"
+        state: directory
+
+    - name: ensure log directory exists
+      file:
+        dest: "{{webapps_dir}}/{{ app_name }}/logs"
+        state: directory
+
+    - name: deploy app from github
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{webapps_dir}}/{{ app_name }}/src"
+        remote: "{{ repo_remote }}"
+        version: "{{ repo_version }}"
+
+    - name: install apt-packages
+      become: yes
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - libpq-dev
+        - gfortran
+        - libopenblas-dev
+        - liblapack-dev
+
+    - name: install requirements
+      pip:
+        requirements: "{{webapps_dir}}/{{ app_name }}/src/requirements.txt"
+        chdir: "{{webapps_dir}}/{{ app_name }}/src/"
+        virtualenv: "{{webapps_dir}}/{{ app_name }}/venv"
+        virtualenv_command: /usr/bin/virtualenv
+        state: present
+        executable: "{{webapps_dir}}/{{ app_name }}/venv/bin/pip"
+        extra_args: "-U"
+#
+#    - name: create supervisor program config
+#      action: template src=templates/supervisor.ini dest=/etc/supervisor/${app_name}.ini
+#      notify:
+#        - restart app
+#
+#    - name: create nginx site config
+#      action: template src=templates/nginx_site.conf dest=/etc/nginx/sites-available/${app_name}.conf
+#      notify:
+#        - restart nginx
+#
+#    - name: link nginx config
+#      action: file src=/etc/nginx/sites-available/${app_name}.conf dest=/etc/nginx/sites-enabled/${app_name}.conf state=link
+#
+#    - name: start app
+#      action: supervisorctl name=${app_name} state=started
+#
+#  handlers:
+#    - name: restart app
+#      action: supervisorctl name=${app_name} state=restarted
+#
+#    - name: restart nginx
+#      action: service name=nginx state=restarted

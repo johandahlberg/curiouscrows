@@ -1,0 +1,93 @@
+# Old manually setup instance is called: ec2-52-29-107-80.eu-central-1.compute.amazonaws.com
+
+- name: Ensure the virtual machine is up and running
+  hosts: localhost
+  connection: local
+  gather_facts: False
+
+  vars:
+    # Set to 0 to remove all servers
+    server_count: 1
+
+  tasks:
+
+    - name: Provision a set of instances
+      ec2:
+         key_name: aws_keys
+         group: curious-crows
+         instance_type: t2.small
+         image: ami-87564feb
+         wait: true
+         exact_count: "{{ server_count }}"
+         count_tag:
+            Name: webserver
+         instance_tags:
+            Name: webserver
+         aws_access_key: "{{ lookup('env', 'AWS_ACCESS_KEY_ID') }}"
+         aws_secret_key: "{{ lookup('env', 'AWS_SECRET_ACCESS_KEY') }}"
+      register: ec2
+
+    - name: Add all instance public IPs to host group
+      add_host: hostname={{ item.public_ip }} groups=ec2hosts
+      with_items: "{{ ec2.tagged_instances }}"
+
+    - name: Wait for instances to listen on port 22
+      wait_for:
+        state=started
+        host={{ item.public_dns_name }}
+        port=22
+      with_items: "{{ ec2.tagged_instances }}"
+
+- name: Basic config of the host
+  hosts: ec2hosts
+  user: ubuntu
+  become_method: sudo
+  gather_facts: true
+
+  tasks:
+    - name: Add nginx ppa
+      become: yes
+      apt_repository:
+        repo: ppa:nginx/stable
+        state: present
+        update_cache: yes
+
+    - name: Install packages
+      become: yes
+      apt:
+        name: "{{ item }}"
+      with_items:
+        - nginx
+        - supervisor
+        - git
+        - python-pip
+        - python-virtualenv
+        - build-essential
+        - python-dev
+
+    - name: install python dependencies
+      pip:
+       name: "{{ item }}"
+       state: present
+      become: yes
+      with_items:
+        - uwsgi
+
+    - name: Remove default nginx site
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      become: yes
+
+    - name: ensure services are running
+      service:
+        state: running
+        name: "{{ item }}"
+        enabled: yes
+      with_items:
+        - nginx
+        - supervisor
+
+
+
+
