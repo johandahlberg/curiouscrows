@@ -6,8 +6,7 @@ from flask import Flask, render_template
 
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.embed import components
-from bokeh.models import (HoverTool, BoxZoomTool, ResetTool, TapTool,
-                          CustomJS, OpenURL)
+from bokeh.models import (HoverTool, BoxZoomTool, ResetTool, TapTool, CustomJS)
 
 from sklearn.preprocessing import Imputer, scale
 from sklearn.decomposition import PCA
@@ -79,9 +78,12 @@ def index():
     p.xaxis.axis_label = "x"
     p.yaxis.axis_label = "y"
 
-    url = "https://www.google.se/?q=@desc"
     taptool = p.select(type=TapTool)
-    taptool.callback = OpenURL(url=url)
+    taptool.callback = CustomJS(code="""
+        var index = cb_obj.get('selected')['1d'].indices[0];
+        var desc = cb_obj.get('data').desc[index];
+        history.pushState({}, '', '#' + desc);
+    """)
 
     fig_js, fig_div = components(p)
 
