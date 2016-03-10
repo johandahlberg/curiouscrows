@@ -51,11 +51,13 @@
         state: present
         executable: "{{webapps_dir}}/{{ app_name }}/venv/bin/pip"
         extra_args: "-U"
-#
-#    - name: create supervisor program config
-#      action: template src=templates/supervisor.ini dest=/etc/supervisor/${app_name}.ini
-#      notify:
-#        - restart app
+
+    - name: create supervisor app config
+      template:
+       src: templates/supervisor.ini
+       dest: /etc/supervisor/conf.d/"{{app_name}}".conf
+      notify:
+        - restart app
 #
 #    - name: create nginx site config
 #      action: template src=templates/nginx_site.conf dest=/etc/nginx/sites-available/${app_name}.conf
@@ -68,9 +70,13 @@
 #    - name: start app
 #      action: supervisorctl name=${app_name} state=started
 #
-#  handlers:
-#    - name: restart app
-#      action: supervisorctl name=${app_name} state=restarted
-#
-#    - name: restart nginx
-#      action: service name=nginx state=restarted
+  handlers:
+    - name: restart app
+      supervisorctl:
+       name: "{{app_name}}"
+       state: restarted
+
+    - name: restart nginx
+      service:
+       name: nginx
+       state: restarted

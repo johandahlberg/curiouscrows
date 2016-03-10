@@ -89,6 +89,14 @@ def index():
         figJS=fig_js,
         figDiv=fig_div))
 
+
+def start():
+    # Get port form environment or default to 5000
+    port = int(os.getenv("PORT", 5000))
+    # Check for env. variable or start on localhost
+    interface = os.getenv("INTERFACE", "localhost")
+    app.run(host=interface, port=port)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process some integers.")
     parser.add_argument('--debug', action='store_true')
@@ -98,8 +106,5 @@ if __name__ == "__main__":
         app.debug = True
         app.logger.setLevel(logging.DEBUG)
 
-    # Get port form environment or default to 5000
-    PORT = int(os.getenv("PORT", 5000))
-    # Check for env. variable or start on localhost
-    INTERFACE = os.getenv("INTERFACE", "localhost")
-    app.run(host=INTERFACE, port=PORT)
+    start()
+
