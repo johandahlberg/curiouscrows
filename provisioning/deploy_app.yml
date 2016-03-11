@@ -54,29 +54,42 @@
 
     - name: create supervisor app config
       template:
-       src: templates/supervisor.ini
-       dest: /etc/supervisor/conf.d/"{{app_name}}".conf
+       src: templates/curiouscrows.supervisor.conf.j2
+       dest: "/etc/supervisor/conf.d/{{ app_name }}.conf"
+      become: yes
       notify:
         - restart app
-#
-#    - name: create nginx site config
-#      action: template src=templates/nginx_site.conf dest=/etc/nginx/sites-available/${app_name}.conf
-#      notify:
-#        - restart nginx
-#
-#    - name: link nginx config
-#      action: file src=/etc/nginx/sites-available/${app_name}.conf dest=/etc/nginx/sites-enabled/${app_name}.conf state=link
-#
-#    - name: start app
-#      action: supervisorctl name=${app_name} state=started
-#
+
+    - name: create nginx site config
+      template:
+       src: templates/nginx_site.j2
+       dest: "/etc/nginx/sites-available/{{ app_name }}.conf"
+      become: yes
+      notify:
+        - restart nginx
+
+    - name: link nginx config
+      file:
+       src: "/etc/nginx/sites-available/{{ app_name }}.conf"
+       dest: "/etc/nginx/sites-enabled/{{ app_name }}.conf"
+       state: link
+      become: yes
+
+    - name: start app
+      supervisorctl:
+       name: "{{app_name}}"
+       state: started
+      become: yes
+
   handlers:
     - name: restart app
       supervisorctl:
        name: "{{app_name}}"
        state: restarted
+      become: yes
 
     - name: restart nginx
       service:
        name: nginx
        state: restarted
+      become: yes
