@@ -3,6 +3,7 @@ import argparse
 import os
 
 from flask import Flask, render_template
+from flask.ext.bootstrap import Bootstrap
 
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.embed import components
@@ -17,6 +18,7 @@ import gzip
 
 app = Flask(__name__)
 log = app.logger
+Bootstrap(app)
 
 # connection_string = os.getenv("DATABASE_URL")
 # engine = create_engine(connection_string)
@@ -55,13 +57,21 @@ df3, pc = compute_principal_components()
 @app.route('/')
 def index():
 
+    callback = CustomJS(code="""
+        var index = cb_obj.get('selected')['1d'].indices[0];
+        if (index !== undefined) {
+            var desc = cb_obj.get('data').desc[index];
+            history.pushState({}, '', '#' + desc);
+        }
+    """)
+
     tools = [HoverTool(
         tooltips=[
             ("index", "$index"),
             ("(x,y)", "($x, $y)"),
             ("desc", "@desc"),
         ]
-    ), BoxZoomTool(), ResetTool(), TapTool()]
+    ), BoxZoomTool(), ResetTool(), TapTool(callback=callback)]
 
     source = ColumnDataSource(
         data=dict(
@@ -71,26 +81,17 @@ def index():
         )
     )
 
-    p = figure(title='PCA plot', plot_width=800, plot_height=500, tools=tools)
+    p = figure(title='PCA plot', plot_width=800, plot_height=500, tools=tools,
+               responsive=True)
 
-    p.circle('x', 'y', source=source, alpha=0.5)
+    p.circle('x', 'y', size=10, fill_color='navy', source=source, alpha=0.5,
+             hover_fill_color="firebrick")
 
     p.xaxis.axis_label = "x"
     p.yaxis.axis_label = "y"
 
-    taptool = p.select(type=TapTool)
-    taptool.callback = CustomJS(code="""
-        var index = cb_obj.get('selected')['1d'].indices[0];
-        var desc = cb_obj.get('data').desc[index];
-        history.pushState({}, '', '#' + desc);
-    """)
-
     fig_js, fig_div = components(p)
-
-    return(render_template(
-        "figures.html",
-        figJS=fig_js,
-        figDiv=fig_div))
+    return render_template("figures.html", figJS=fig_js, figDiv=fig_div)
 
 
 def start():
