@@ -21,4 +21,5 @@ tornado==4.3
 Werkzeug==0.11.4
 wheel==0.29.0
 bokeh==0.11.1
+flask-bootstrap==3.3.5.7
 
