@@ -74,12 +74,9 @@
        dest: "/etc/nginx/sites-enabled/{{ app_name }}.conf"
        state: link
       become: yes
-
-    - name: start app
-      supervisorctl:
-       name: "{{app_name}}"
-       state: started
-      become: yes
+      notify:
+        - restart app
+        - restart nginx
 
   handlers:
     - name: restart app
