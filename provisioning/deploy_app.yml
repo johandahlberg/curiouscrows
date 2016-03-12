@@ -30,6 +30,9 @@
         dest: "{{webapps_dir}}/{{ app_name }}/src"
         remote: "{{ repo_remote }}"
         version: "{{ repo_version }}"
+      notify:
+        - restart app
+
 
     - name: install apt-packages
       become: yes
