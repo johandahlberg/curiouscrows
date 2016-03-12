@@ -17,6 +17,7 @@ import numpy as np
 import gzip
 
 app = Flask(__name__)
+app.config['BOOTSTRAP_SERVE_LOCAL'] = True
 log = app.logger
 Bootstrap(app)
 
@@ -56,7 +57,7 @@ df3, pc = compute_principal_components()
 
 @app.route('/')
 def index():
-
+    """Render the initial PCA plot with all regions."""
     callback = CustomJS(code="""
         var index = cb_obj.get('selected')['1d'].indices[0];
         if (index !== undefined) {
@@ -81,7 +82,7 @@ def index():
         )
     )
 
-    p = figure(title='PCA plot', plot_width=800, plot_height=500, tools=tools,
+    p = figure(title='PCA plot', plot_width=960, plot_height=600, tools=tools,
                responsive=True)
 
     p.circle('x', 'y', size=10, fill_color='navy', source=source, alpha=0.5,
