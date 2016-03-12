@@ -7,6 +7,7 @@
 {% block styles %}
     {{ super() }}
     <link href="{{ url_for('static', filename='bokeh-0.11.1.min.css') }}" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="https://bootswatch.com/simplex/bootstrap.min.css">
     <link href="{{ url_for('static', filename='main.css') }}" rel="stylesheet" type="text/css">
     <script src="https://cdn.jsdelivr.net/vue/latest/vue.js"></script>
 {% endblock %}
@@ -41,6 +42,16 @@
             </div>
             <div class="col-xs-4">
                 <div class="panel panel-default">
+                    <div class="panel-body">
+                        <label>Välj kummun:</label>
+                        <select v-model="selected">
+                            {% for region in all_regions %}
+                                <option>{{ region }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="panel panel-default">
                     <div class="panel-heading">
                         Markerade kommuner
                     </div>
@@ -48,7 +59,11 @@
                         {% raw %}
                             <li class="list-group-item" v-for="region in regions">{{ region }}</li>
                         {% endraw %}
+                        <li class="list-group-item" v-if="regions.length == 0">Inga kommuner markerade</li>
                     </ul>
+                    <div class="panel-footer" v-if="regions.length > 1">
+                        <button class="btn btn-default btn-xs">Jämför</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -62,7 +77,12 @@
     </footer>
 
     <script type="text/javascript">
-        window.vue = new Vue({el: '#app', data: { regions: [] }})
+        window.vue = new Vue({
+            el: '#app',
+            data: {
+                regions: [],
+                selected: null
+            }})
     </script>
 {% endblock %}
 
