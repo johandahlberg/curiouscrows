@@ -8,8 +8,7 @@ from flask.ext.bootstrap import Bootstrap
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.embed import components
 from bokeh.charts import Bar
-from bokeh.models import (HoverTool, BoxZoomTool, ResetTool, TapTool, CustomJS,
-                          BoxSelectTool)
+from bokeh.models import HoverTool, BoxZoomTool, ResetTool, TapTool, CustomJS
 
 from sklearn.preprocessing import Imputer, scale
 from sklearn.decomposition import PCA
@@ -56,7 +55,7 @@ def compute_principal_components():
 
 def create_pca_plot():
     """Render the initial PCA plot with all regions."""
-    callback = CustomJS(code="""
+    list_regions = CustomJS(code="""
         var indexes = cb_obj.get('selected')['1d'].indices;
         var descs = [];
         for (index in indexes) {
@@ -71,40 +70,49 @@ def create_pca_plot():
             ("(x,y)", "($x, $y)"),
             ("desc", "@desc"),
         ]
-    ), BoxZoomTool(), ResetTool(), TapTool(callback=callback), BoxSelectTool(callback=callback)]
+    ), BoxZoomTool(), ResetTool(), TapTool(callback=list_regions)]
 
     source = ColumnDataSource(
         data=dict(
             x=pc[:, 0],
             y=pc[:, 1],
             desc=df3.index,
+            colors=['navy'] * len(df3.index)
         )
     )
 
+    show_region = CustomJS(args=dict(source=source), code="""
+        var region = cb_obj.get('value');
+        var data = source.get('data');
+        var region_idx = data['desc'].indexOf(region);
+        data['colors'][region_idx] = 'firebrick';
+        source.trigger('change');
+    """)
+
     plot = figure(title='PCA plot', plot_width=960, plot_height=600,
-              tools=tools, responsive=True)
+                  tools=tools, responsive=True)
 
     plot.background_fill_color = 'beige'
     plot.background_fill_alpha = 0.5
 
-    renderer = plot.circle('x', 'y', size=10, source=source,
-                           # set visual properties for selected glyphs
-                           selection_color="firebrick",
-
-                           # set visual properties for non-selected glyphs
-                           nonselection_fill_alpha=0.2,
-                           nonselection_fill_color="blue",
-                           nonselection_line_color="firebrick",
-                           nonselection_line_alpha=1.0)
+    plot.circle('x', 'y', size=10, source=source,
+                # set visual properties for selected glyphs
+                selection_color="firebrick",
+                # set visual properties for non-selected glyphs
+                nonselection_fill_alpha=0.2,
+                nonselection_fill_color="blue",
+                nonselection_line_color="firebrick",
+                nonselection_line_alpha=1.0)
 
     plot.xaxis.axis_label = "x"
     plot.yaxis.axis_label = "y"
 
     pca_fig_js, pca_fig_div = components(plot)
-    return pca_fig_js, pca_fig_div
+    all_regions = [region.decode('utf-8') for region in df3.index]
+    return pca_fig_js, pca_fig_div, all_regions
+
 
 def create_bar_plot():
-
     small_data = df3.head()
     small_data["municipality_name"] = small_data.index
 
@@ -129,9 +137,10 @@ def create_bar_plot():
 
 df3, pc = compute_principal_components()
 
+
 @app.route('/')
 def index():
-    pca_fig_js, pca_fig_div = create_pca_plot()
+    pca_fig_js, pca_fig_div, all_regions = create_pca_plot()
     bar_fig_js, bar_fig_div = create_bar_plot()
 
     return \
@@ -140,7 +149,9 @@ def index():
             pcaFigJs=pca_fig_js,
             pcaFigDiv=pca_fig_div,
             barFigJs=bar_fig_js,
-            barFigDiv=bar_fig_div)
+            barFigDiv=bar_fig_div,
+            all_regions=all_regions)
+
 
 def start():
     # Get port form environment or default to 5000
@@ -159,4 +170,3 @@ if __name__ == "__main__":
         app.logger.setLevel(logging.DEBUG)
 
     start()
-
