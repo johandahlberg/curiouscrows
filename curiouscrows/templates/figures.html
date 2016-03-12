@@ -80,16 +80,12 @@
                                 <tbody>
                                     <tr v-for="comp in compares">
                                         <td>{{ comp.kpi_desc }}</td>
-                                        <td>{{ comp.municipality_name }}</td>
+                                        <td>{{ comp.first_mun.format(2) }}</td>
                                         <td class="text-center">
-                                            {{#if comp.first > comp.second }}
-                                                <span class="glyphicon glyphicon-arrow-left"></span>
-                                            {{/if}}
-                                            {{#if comp.first < comp.second }}
-                                                <span class="glyphicon glyphicon-arrow-right"></span>
-                                            {{/if}}
+                                            <span v-if="comp.first_mun > comp.sec_mun" class="glyphicon text-lg glyphicon-arrow-left"></span>
+                                            <span v-else class="glyphicon text-lg glyphicon-arrow-right"></span>
                                         </td>
-                                        <td>{{ comp.second }}</td>
+                                        <td>{{ comp.sec_mun.format(2) }}</td>
                                     </tr>
                                 </tbody>
                             </table>
