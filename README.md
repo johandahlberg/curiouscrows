@@ -1,4 +1,4 @@
-Notes on deploying
-------------------
+Hack for sweden 2016
+====================
 
-    cf push -b https://github.com/ihuston/python-conda-buildpack.git curiouscrow-test -p $PWD
+An app build by Robin Andeer, Mikael Huss and Johan dahlberg at Hack for Sweden 2016.
