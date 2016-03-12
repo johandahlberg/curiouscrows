@@ -158,8 +158,20 @@ def create_bar_plot():
     bar_fig_js, bar_fig_div = components(bar_plot)
     return bar_fig_js, bar_fig_div
 
+
+# def construct_municip_to_identifier(data):
+#     m2i = {}
+#     for row in data.iterrows():
+#         print row.values[2]
+#         m2i[row[2]] = row[3]
+#     return m2i
+
+
 original_data = load_data()
 df3, pc, missing = compute_principal_components(original_data)
+# muncip2identifier = construct_municip_to_identifier(original_data )
+#
+# print(muncip2identifier)
 
 def diff_kpi_ranks(df, kommun1, kommun2, missing):
     rankdiffs = {}
@@ -176,16 +188,24 @@ def diff_kpi_ranks(df, kommun1, kommun2, missing):
 
 @app.route('/diff_kpis/<municip1>/<municip2>')
 def diff_kpis(municip1, municip2):
+    municip1 = municip1.encode('utf-8')
+    municip2 = municip2.encode('utf-8')
 
     rd = diff_kpi_ranks(df3, municip1, municip2, missing)
     sorted_diffs = sorted(rd.items(), key=operator.itemgetter(1), reverse=True)
     top_diffs = map(lambda x: x[0], sorted_diffs[:10])
     bottom_diffs = map(lambda x: x[0], sorted_diffs[-10:])
     selected = original_data[
-        (original_data.kpi.isin(top_diffs) | original_data.kpi.isin(bottom_diffs))&
+        (original_data.kpi.isin(top_diffs) | original_data.kpi.isin(bottom_diffs)) &
         ((original_data.municipality_name == municip1) | (original_data.municipality_name == municip2))]
-    sl = selected.pivot(index='municipality_name', columns='kpi', values='value').T
+    sl = selected.pivot(index='municipality_name', columns='kpi_desc', values='value').T
+    sl["kpi_desc"] = sl.index
     return sl.to_json(orient='records')
+
+# @app.route('/municip_to_identifier/<name>')
+# def municip_to_identifier(name):
+#     original_data
+
 
 @app.route('/top_kpis/<municipality>')
 def top_kpis(municipality):
