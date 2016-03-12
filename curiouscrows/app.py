@@ -17,6 +17,7 @@ from sklearn.decomposition import PCA
 import pandas as pd
 import numpy as np
 import gzip
+import operator
 
 app = Flask(__name__)
 app.config['BOOTSTRAP_SERVE_LOCAL'] = True
@@ -26,32 +27,43 @@ Bootstrap(app)
 # connection_string = os.getenv("DATABASE_URL")
 # engine = create_engine(connection_string)
 
+def kpi_ranks(df, kommun, missing):
+    rank = {}
+    for kpi in df.columns:
+        if(missing[kpi][kommun]==True): continue
+        all_m = sorted(df[kpi])
+        this_m = df[kpi][kommun]
+        rank[kpi] = all_m.index(this_m)
+    return(rank)
 
-def compute_principal_components():
+def load_data():
+    original_data = pd.read_csv(gzip.open("data/data.csv.gz"), sep="\t")
+    return(original_data)
+    
+
+def compute_principal_components(d):
     log.debug("Computing principal components")
-    # d = pd.read_sql_table("data", engine,
-    #                       columns=["kpi", "municipality_name", "value"])
-    d = pd.read_csv(gzip.open("data/data.csv.gz"), sep="\t")
+    
     mx = d.pivot(index='municipality_name', columns='kpi', values='value')
-
     # Imputation. First replace 'None' string with NaN
     mis = mx == 'None'
     mx[mis] = np.nan
+    missing = pd.isnull(mx)
 
     imp = Imputer(strategy="mean", axis=1)
     imp.fit(mx)
     # Impute mean values
-    df = pd.DataFrame(imp.transform(mx), index=mx.index, columns=mx.columns.values)
-    colvar = df.var(axis=0)
+    imputed_df = pd.DataFrame(imp.transform(mx), index=mx.index, columns=mx.columns.values)
+    colvar = imputed_df.var(axis=0)
     # Remove constant columns
-    df2 = df[colvar[colvar > 0.01].index]
+    nonconstant_df = imputed_df[colvar[colvar > 0.01].index]
     # Scale values
-    df3 = pd.DataFrame(scale(df2), index=mx.index, columns=df2.columns.values)
+    scaled_df = pd.DataFrame(scale(nonconstant_df), index=mx.index, columns=nonconstant_df.columns.values)
 
     pca = PCA(n_components=2)
-    pc = pca.fit(df3).transform(df3)
+    pc = pca.fit(scaled_df).transform(scaled_df)
     log.debug("Finished computing principal compoments")
-    return df3, pc
+    return scaled_df, pc, missing
 
 
 def create_pca_plot():
@@ -105,29 +117,33 @@ def create_pca_plot():
 
 def create_bar_plot():
 
-    small_data = df3.head()
-    small_data["municipality_name"] = small_data.index
+    municipality = "Uppsala"
+    #orig_copy = original_data.copy()
+    #orig_copy["municipality_name"] = orig_copy.index
+    #print(orig_copy.index)
 
-    small_data_melted = pd.melt(small_data, id_vars='municipality_name')
+    rks = kpi_ranks(df3, municipality, missing)
+    sorted_ranks = sorted(rks.items(), key=operator.itemgetter(1), reverse=True)
+    top_kpi = [k[0] for k in sorted_ranks[:10]]
 
-    small_data_melted = small_data_melted[
-        (small_data_melted.variable == "N00002") |
-        (small_data_melted.variable == "N00003") |
-        (small_data_melted.variable == "N00005  ")
-    ]
+    #small_data_melted = pd.melt(orig_copy, id_vars='municipality_name')
+    selected = original_data[(original_data.kpi.isin(top_kpi)) & (original_data.municipality_name == municipality)]
+    selected.value = selected.value.astype(float)
+
+    print(selected)
 
     bar_plot = Bar(
-        small_data_melted,
+        selected,
         'municipality_name',
         values='value',
-        group='variable',
+        group='kpi',
         title="Test bar plot")
 
     bar_fig_js, bar_fig_div = components(bar_plot)
     return bar_fig_js, bar_fig_div
 
-
-df3, pc = compute_principal_components()
+original_data = load_data()
+df3, pc, missing = compute_principal_components(original_data)
 
 @app.route('/')
 def index():

@@ -1,5 +1,5 @@
-backports-abc ==0.4
-backports.ssl-match-hostname ==3.4.0.2
+#backports-abc ==0.4
+#backports.ssl-match-hostname ==3.4.0.2
 flask-sqlalchemy ==2.1
 futures==3.0.3
 itsdangerous==0.24
