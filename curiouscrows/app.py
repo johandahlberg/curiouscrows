@@ -75,6 +75,7 @@ def create_pca_plot():
         for (index in indexes) {
             descs.push(cb_obj.get('data').desc[indexes[index]]);
         }
+        window.vue.$data.selected = cb_obj.get('data').desc[indexes[0]];
         window.vue.$data.regions = descs;
     """)
 
@@ -134,7 +135,7 @@ def top_kpis_as_dict(municipality):
     selected = original_data[(original_data.kpi.isin(top_kpi)) & (original_data.municipality_name == municipality)]
     selected.value = selected.value.astype(float)
 
-    return selected.to_dict()
+    return selected.to_json(orient='records')
 
 
 def create_bar_plot():
@@ -163,22 +164,17 @@ df3, pc, missing = compute_principal_components(original_data)
 
 @app.route('/top_kpis/<municipality>')
 def top_kpis(municipality):
-    return flask.jsonify(**top_kpis_as_dict(municipality))
+    return top_kpis_as_dict(municipality.encode('utf-8'))
 
 
 @app.route('/')
 def index():
     pca_fig_js, pca_fig_div, all_regions = create_pca_plot()
-    bar_fig_js, bar_fig_div = create_bar_plot()
 
-    return \
-        render_template(
-            "figures.html",
-            pcaFigJs=pca_fig_js,
-            pcaFigDiv=pca_fig_div,
-            barFigJs=bar_fig_js,
-            barFigDiv=bar_fig_div,
-            all_regions=all_regions)
+    return render_template("figures.html",
+                           pcaFigJs=pca_fig_js,
+                           pcaFigDiv=pca_fig_div,
+                           all_regions=all_regions)
 
 
 def start():

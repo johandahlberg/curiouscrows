@@ -36,9 +36,6 @@
                 <div class="bokeh">
                     {{ pcaFigDiv|safe }}
                 </div>
-                <div class="bokeh">
-                    {{ barFigDiv|safe }}
-                </div>
             </div>
             <div class="col-xs-4">
                 <div class="panel panel-default">
@@ -51,6 +48,7 @@
                         </select>
                     </div>
                 </div>
+
                 <div class="panel panel-default">
                     <div class="panel-heading">
                         Markerade kommuner
@@ -65,6 +63,27 @@
                         <button class="btn btn-default btn-xs">Jämför</button>
                     </div>
                 </div>
+
+                {% raw %}
+                    <div class="panel panel-default" v-if="kpis.length > 0">
+                        <div class="panel-heading">{{ selected }}</div>
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Nyckelvärde</th>
+                                    <th>Värde</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="kpi in kpis">
+                                    <td>{{ kpi.kpi_desc }}</td>
+                                    <td>{{ kpi.value }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                {% endraw %}
+
             </div>
         </div>
     </div>
@@ -79,10 +98,22 @@
     <script type="text/javascript">
         window.vue = new Vue({
             el: '#app',
+
             data: {
                 regions: [],
-                selected: null
+                selected: null,
+                kpis: []
             }})
+
+        vue.$watch('selected', function (value) {
+          if (value) {
+                self = this
+                $.getJSON('/top_kpis/' + value, function(data) {
+                    self.kpis = data;
+                    console.log(data);
+                })
+            }
+        })
     </script>
 {% endblock %}
 
@@ -90,5 +121,4 @@
     {{ super() }}
     <script src="{{ url_for('static', filename='bokeh-0.11.1.min.js') }}"></script>
     {{ pcaFigJs|safe }}
-    {{ barFigJs|safe }}
 {% endblock %}
