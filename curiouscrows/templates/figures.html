@@ -71,7 +71,7 @@
                             <table class="table table-bordered">
                                 <thead>
                                     <tr>
-                                        <th>Nyckelvärde</th>
+                                        <th>Nyckeltal</th>
                                         <th>{{ regions[0] }}</th>
                                         <th>Riktning</th>
                                         <th>{{ regions[1] }}</th>
@@ -79,17 +79,17 @@
                                 </thead>
                                 <tbody>
                                     <tr v-for="comp in compares">
-                                        <td>{{ comp.kpi }}</td>
-                                        <td>{{ comp.first }}</td>
+                                        <td>{{ comp.kpi_desc }}</td>
+                                        <td>{{ comp.municipality_name }}</td>
                                         <td class="text-center">
-                                            {{#if comp.first > comp.other }}
+                                            {{#if comp.first > comp.second }}
                                                 <span class="glyphicon glyphicon-arrow-left"></span>
                                             {{/if}}
-                                            {{#if comp.first < comp.other }}
+                                            {{#if comp.first < comp.second }}
                                                 <span class="glyphicon glyphicon-arrow-right"></span>
                                             {{/if}}
                                         </td>
-                                        <td>{{ comp.other }}</td>
+                                        <td>{{ comp.second }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -104,14 +104,14 @@
                             <table class="table table-bordered">
                                 <thead>
                                     <tr>
-                                        <th>Nyckelvärde</th>
+                                        <th>Nyckeltal</th>
                                         <th>Värde</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-for="kpi in kpis">
                                         <td>{{ kpi.kpi_desc }}</td>
-                                        <td>{{ kpi.value.format() }}</td>
+                                        <td>{{ kpi.value.format(2) }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -139,7 +139,7 @@
          */
         Number.prototype.format = function(n, x) {
             var re = '\\d(?=(\\d{' + (x || 3) + '})+' + (n > 0 ? '\\.' : '$') + ')';
-            return this.toFixed(Math.max(0, ~~n)).replace(new RegExp(re, 'g'), '$&\'');
+            return this.toFixed(Math.max(0, ~~n)).replace(new RegExp(re, 'g'), '$&,');
         };
 
         window.vue = new Vue({
@@ -147,8 +147,15 @@
 
             methods: {
                 compare: function(event) {
-                    console.log(event);
-                    this.isComparing = true;
+                    if (this.regions.length !== 2) {
+                        return;
+                    }
+                    self = this;
+                    $.getJSON('/diff_kpis/' + this.regions.join('/'), function(data) {
+                        console.log(data[0]);
+                        self.compares = data;
+                        self.isComparing = true;
+                    });
                 }
             },
 
@@ -156,7 +163,7 @@
                 regions: [],
                 selected: null,
                 kpis: [],
-                compares: [{'name': 'Robin'}],
+                compares: [],
                 isComparing: false
             }
         });
@@ -166,7 +173,6 @@
                 self = this
                 $.getJSON('/top_kpis/' + value, function(data) {
                     self.kpis = data;
-                    console.log(data);
                 })
             }
         });

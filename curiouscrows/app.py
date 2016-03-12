@@ -192,7 +192,7 @@ def diff_kpis(municip1, municip2):
     municip1 = municip1.encode('utf-8')
     municip2 = municip2.encode('utf-8')
 
-    rd = diff_kpi_ranks(df3, municip1, municip2, missing)
+    rd = diff_kpi_ranks(df3, municip1.encode('utf-8'), municip2.encode('utf-8'), missing)
     sorted_diffs = sorted(rd.items(), key=operator.itemgetter(1), reverse=True)
     top_diffs = map(lambda x: x[0], sorted_diffs[:10])
     bottom_diffs = map(lambda x: x[0], sorted_diffs[-10:])
@@ -201,6 +201,7 @@ def diff_kpis(municip1, municip2):
         ((original_data.municipality_name == municip1) | (original_data.municipality_name == municip2))]
     sl = selected.pivot(index='municipality_name', columns='kpi_desc', values='value').T
     sl["kpi_desc"] = sl.index
+    sl.columns = ['first', 'second']
     return sl.to_json(orient='records')
 
 # @app.route('/municip_to_identifier/<name>')
