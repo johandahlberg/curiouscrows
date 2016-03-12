@@ -32,12 +32,12 @@
 {% block content %}
     <div id="app" class="container-fluid">
         <div class="row">
-            <div class="col-xs-8">
+            <div class="col-xs-7 col-md-6 col-lg-7">
                 <div class="bokeh">
                     {{ pcaFigDiv|safe }}
                 </div>
             </div>
-            <div class="col-xs-4">
+            <div class="col-xs-5 col-md-6 col-lg-5">
                 <div class="panel panel-default">
                     <div class="panel-body">
                         <label>Välj kummun:</label>
@@ -60,27 +60,62 @@
                         <li class="list-group-item" v-if="regions.length == 0">Inga kommuner markerade</li>
                     </ul>
                     <div class="panel-footer" v-if="regions.length > 1">
-                        <button class="btn btn-default btn-xs">Jämför</button>
+                        <button class="btn btn-default btn-xs" v-on:click="compare">Jämför</button>
                     </div>
                 </div>
 
                 {% raw %}
-                    <div class="panel panel-default" v-if="kpis.length > 0">
+                    <div class="panel panel-default" v-if="isComparing && regions.length == 2">
+                        <div class="panel-heading">Jämförelse: {{ regions[0] }} vs. {{ regions[1] }}</div>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Nyckelvärde</th>
+                                        <th>{{ regions[0] }}</th>
+                                        <th>Riktning</th>
+                                        <th>{{ regions[1] }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="comp in compares">
+                                        <td>{{ comp.kpi }}</td>
+                                        <td>{{ comp.first }}</td>
+                                        <td class="text-center">
+                                            {{#if comp.first > comp.other }}
+                                                <span class="glyphicon glyphicon-arrow-left"></span>
+                                            {{/if}}
+                                            {{#if comp.first < comp.other }}
+                                                <span class="glyphicon glyphicon-arrow-right"></span>
+                                            {{/if}}
+                                        </td>
+                                        <td>{{ comp.other }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endraw %}
+
+                {% raw %}
+                    <div class="panel panel-default" v-if="kpis.length > 0 && selected">
                         <div class="panel-heading">{{ selected }}</div>
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Nyckelvärde</th>
-                                    <th>Värde</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="kpi in kpis">
-                                    <td>{{ kpi.kpi_desc }}</td>
-                                    <td>{{ kpi.value }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Nyckelvärde</th>
+                                        <th>Värde</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="kpi in kpis">
+                                        <td>{{ kpi.kpi_desc }}</td>
+                                        <td>{{ kpi.value.format() }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 {% endraw %}
 
@@ -96,14 +131,35 @@
     </footer>
 
     <script type="text/javascript">
+        /**
+         * Number.prototype.format(n, x)
+         * 
+         * @param integer n: length of decimal
+         * @param integer x: length of sections
+         */
+        Number.prototype.format = function(n, x) {
+            var re = '\\d(?=(\\d{' + (x || 3) + '})+' + (n > 0 ? '\\.' : '$') + ')';
+            return this.toFixed(Math.max(0, ~~n)).replace(new RegExp(re, 'g'), '$&\'');
+        };
+
         window.vue = new Vue({
             el: '#app',
+
+            methods: {
+                compare: function(event) {
+                    console.log(event);
+                    this.isComparing = true;
+                }
+            },
 
             data: {
                 regions: [],
                 selected: null,
-                kpis: []
-            }})
+                kpis: [],
+                compares: [{'name': 'Robin'}],
+                isComparing: false
+            }
+        });
 
         vue.$watch('selected', function (value) {
           if (value) {
@@ -113,7 +169,7 @@
                     console.log(data);
                 })
             }
-        })
+        });
     </script>
 {% endblock %}
 

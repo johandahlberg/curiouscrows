@@ -73,10 +73,14 @@ def create_pca_plot():
         var indexes = cb_obj.get('selected')['1d'].indices;
         var descs = [];
         for (index in indexes) {
+            if (index > 1) {
+                break;
+            }
             descs.push(cb_obj.get('data').desc[indexes[index]]);
         }
         window.vue.$data.selected = cb_obj.get('data').desc[indexes[0]];
         window.vue.$data.regions = descs;
+        window.cb_obj = cb_obj
     """)
 
     tools = [HoverTool(
@@ -92,7 +96,7 @@ def create_pca_plot():
             x=pc[:, 0],
             y=pc[:, 1],
             desc=df3.index,
-            colors=['navy'] * len(df3.index)
+            color=['navy'] * len(df3.index)
         )
     )
 
@@ -109,15 +113,12 @@ def create_pca_plot():
 
     plot.background_fill_color = 'beige'
     plot.background_fill_alpha = 0.5
+    plot.border_fill = '#FCFCFC'
 
-    plot.circle('x', 'y', size=10, source=source,
+    plot.circle('x', 'y', size=10, source=source, color='color',
                 # set visual properties for selected glyphs
-                selection_color="firebrick",
                 # set visual properties for non-selected glyphs
-                nonselection_fill_alpha=0.2,
-                nonselection_fill_color="blue",
-                nonselection_line_color="firebrick",
-                nonselection_line_alpha=1.0)
+                nonselection_fill_alpha=0.2)
 
     plot.xaxis.axis_label = "x"
     plot.yaxis.axis_label = "y"
