@@ -184,8 +184,8 @@ def diff_kpis(municip1, municip2):
     selected = original_data[
         (original_data.kpi.isin(top_diffs) | original_data.kpi.isin(bottom_diffs))&
         ((original_data.municipality_name == municip1) | (original_data.municipality_name == municip2))]
-    sl = selected.pivot(index='municipality_name',columns='kpi',values='value').T
-    return selected.to_json(orient='records')
+    sl = selected.pivot(index='municipality_name', columns='kpi', values='value').T
+    return sl.to_json(orient='records')
 
 @app.route('/top_kpis/<municipality>')
 def top_kpis(municipality):
