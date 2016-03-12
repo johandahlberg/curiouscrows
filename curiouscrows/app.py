@@ -101,7 +101,7 @@ def create_pca_plot():
         )
     )
 
-    plot = figure(title=u'Jämförelse av alla kommuner', plot_width=960, plot_height=600,
+    plot = figure(title=u'Jämförelse av Sveriges kommuner', plot_width=960, plot_height=600,
                   tools=tools, responsive=True)
 
     plot.background_fill_color = 'beige'
