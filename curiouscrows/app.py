@@ -18,6 +18,8 @@ import numpy as np
 import gzip
 import operator
 
+import flask
+
 app = Flask(__name__)
 app.config['BOOTSTRAP_SERVE_LOCAL'] = True
 log = app.logger
@@ -124,23 +126,26 @@ def create_pca_plot():
     return pca_fig_js, pca_fig_div, all_regions
 
 
+def top_kpis_as_dict(municipality):
+    rks = kpi_ranks(df3, municipality, missing)
+    sorted_ranks = sorted(rks.items(), key=operator.itemgetter(1), reverse=True)
+    top_kpi = [k[0] for k in sorted_ranks[:10]]
+
+    selected = original_data[(original_data.kpi.isin(top_kpi)) & (original_data.municipality_name == municipality)]
+    selected.value = selected.value.astype(float)
+
+    return selected.to_dict()
+
+
 def create_bar_plot():
-    small_data = df3.head()
-    small_data["municipality_name"] = small_data.index
     municipality = "Uppsala"
-    #orig_copy = original_data.copy()
-    #orig_copy["municipality_name"] = orig_copy.index
-    #print(orig_copy.index)
 
     rks = kpi_ranks(df3, municipality, missing)
     sorted_ranks = sorted(rks.items(), key=operator.itemgetter(1), reverse=True)
     top_kpi = [k[0] for k in sorted_ranks[:10]]
 
-    #small_data_melted = pd.melt(orig_copy, id_vars='municipality_name')
     selected = original_data[(original_data.kpi.isin(top_kpi)) & (original_data.municipality_name == municipality)]
     selected.value = selected.value.astype(float)
-
-    print(selected)
 
     bar_plot = Bar(
         selected,
@@ -154,6 +159,11 @@ def create_bar_plot():
 
 original_data = load_data()
 df3, pc, missing = compute_principal_components(original_data)
+
+
+@app.route('/top_kpis/<municipality>')
+def top_kpis(municipality):
+    return flask.jsonify(**top_kpis_as_dict(municipality))
 
 
 @app.route('/')
