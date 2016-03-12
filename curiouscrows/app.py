@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import logging
 import argparse
 import os
@@ -70,7 +71,7 @@ def compute_principal_components(d):
 def create_pca_plot():
     """Render the initial PCA plot with all regions."""
     list_regions = CustomJS(code="""
-        var indexes = cb_obj.get('selected')['1d'].indices;
+        var indexes = cb_obj.get('selected')['1d'].indices.slice(0, 2);
         var descs = [];
         for (index in indexes) {
             if (index > 1) {
@@ -79,14 +80,13 @@ def create_pca_plot():
             descs.push(cb_obj.get('data').desc[indexes[index]]);
         }
         window.vue.$data.selected = cb_obj.get('data').desc[indexes[0]];
-        window.vue.$data.regions = descs;
-        window.cb_obj = cb_obj
+        window.vue.$data.first_mun = cb_obj.get('data').desc[indexes[0]];
+        window.vue.$data.sec_mun = cb_obj.get('data').desc[indexes[1]];
+        window.vue.$data.cb_obj = cb_obj
     """)
 
     tools = [HoverTool(
         tooltips=[
-            ("index", "$index"),
-            ("(x,y)", "($x, $y)"),
             ("desc", "@desc"),
         ]
     ), BoxZoomTool(), ResetTool(), TapTool(callback=list_regions)]
@@ -96,29 +96,22 @@ def create_pca_plot():
             x=pc[:, 0],
             y=pc[:, 1],
             desc=df3.index,
-            color=['navy'] * len(df3.index)
+            color=['firebrick'] * len(df3.index),
+            opacity=[.2] * len(df3.index)
         )
     )
 
-    show_region = CustomJS(args=dict(source=source), code="""
-        var region = cb_obj.get('value');
-        var data = source.get('data');
-        var region_idx = data['desc'].indexOf(region);
-        data['colors'][region_idx] = 'firebrick';
-        source.trigger('change');
-    """)
-
-    plot = figure(title='PCA plot', plot_width=960, plot_height=600,
+    plot = figure(title=u'Jämförelse av alla kommuner', plot_width=960, plot_height=600,
                   tools=tools, responsive=True)
 
     plot.background_fill_color = 'beige'
     plot.background_fill_alpha = 0.5
     plot.border_fill = '#FCFCFC'
 
-    plot.circle('x', 'y', size=10, source=source, color='color',
-                # set visual properties for selected glyphs
-                # set visual properties for non-selected glyphs
-                nonselection_fill_alpha=0.2)
+    renderer = plot.circle('x', 'y', size=10, source=source, color='color',
+                           # set visual properties for selected glyphs
+                           # set visual properties for non-selected glyphs
+                           nonselection_fill_alpha=0.2)
 
     plot.xaxis.axis_label = "x"
     plot.yaxis.axis_label = "y"
@@ -201,7 +194,12 @@ def diff_kpis(municip1, municip2):
         ((original_data.municipality_name == municip1) | (original_data.municipality_name == municip2))]
     sl = selected.pivot(index='municipality_name', columns='kpi_desc', values='value').T
     sl["kpi_desc"] = sl.index
-    sl.columns = ['first_mun', 'sec_mun', 'kpi_desc']
+
+    if (sl.columns[0] == municip1) and (sl.columns[1] == municip2):
+        sl.columns = ['first_mun', 'sec_mun', 'kpi_desc']
+    elif (sl.columns[0] == municip2) and (sl.columns[1] == municip1):
+        sl.columns = ['sec_mun', 'first_mun', 'kpi_desc']
+
     sl.first_mun = sl.first_mun.astype(float)
     sl.sec_mun = sl.sec_mun.astype(float)
     return sl.to_json(orient='records')
@@ -224,6 +222,11 @@ def index():
                            pcaFigJs=pca_fig_js,
                            pcaFigDiv=pca_fig_div,
                            all_regions=all_regions)
+
+
+@app.route('/hur')
+def hur_funkar():
+    return render_template("about.html")
 
 
 def start():

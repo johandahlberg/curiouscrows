@@ -1,0 +1,51 @@
+{% extends "bootstrap/base.html" %}
+
+{% block title %}
+    Curious Crows
+{% endblock %}
+
+{% block styles %}
+    {{ super() }}
+    <link href="{{ url_for('static', filename='bokeh-0.11.1.min.css') }}" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="https://bootswatch.com/simplex/bootstrap.min.css">
+    <link href="{{ url_for('static', filename='main.css') }}" rel="stylesheet" type="text/css">
+    <script src="https://cdn.jsdelivr.net/vue/latest/vue.js"></script>
+{% endblock %}
+
+{% block navbar %}
+    <nav class="navbar navbar-default">
+        <div class="container">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="{{ url_for('index') }}">Kommunvis</a>
+            </div>
+
+            <div class="collapse navbar-collapse">
+                <ul class="nav navbar-nav">
+                    <li><a href="#">Hur funkar det?</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+{% endblock %}
+
+{% block content %}
+    <div id="app" class="container">
+        <div class="page-header">
+            <h3>Hur funkar Kommunvis?</h3>
+        </div>
+        <div class="row">
+            <div class="col-xs-7 col-md-6 col-lg-7">
+                <p>Vi har utgått från över 2000 nyckeltal för Sveriges 290 kommuner och försökt sammanfatta dem i två dimensioner för att man på ett mer intuitivt sätt ska kunna utforska dessa data visuellt.</p>
+
+                <p>Dessa nyckeltal beskriver allt möjligt från befolkningsstatistik till olika utgifter, skolresultat och vad folk har svarat på enkäter om kommunens service (bara för att ge några exempel).</p>
+
+                <p>Vårt bidrag gör det möjligt att jämföra hur olika kommuner förhåller sig till varandra när man tar hänsyn till alla dessa variabler. För varje kommun kan man ta reda på hur just den kommunen skiljer ut sig mest från de andra kommunerna. Man kan också välja två kommuner och få reda på vilka nyckeltal som skiljer sig mest mellan dessa.</p>
+
+                <p>Vi har använt Python med biblioteket Bokeh för visualiseringen. Vi tänker oss att det kan ligga en användar/samhällsnytta i att ge en enkel ingång till en djupare analys av kommunala data. Eftersom det finns så många olika nyckeltal är det svårt för en nybörjare att veta var man ska börja, och vi hoppas att vårt bidrag kan fungera som en användarvänlig utgångspunkt.</p>
+
+                <p>Den teknik vi har använt oss av för att sammanfatta alla nyckeltal kallas principalkomponentanalys. I den nuvarande versionen av modellen förklaras c:a 17% av variationen i datat av den första principalkomponenten (x-axeln) medan c:a 8% förklaras av den andra komponenten (y-axeln).</p>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

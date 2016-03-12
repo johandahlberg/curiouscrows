@@ -21,8 +21,7 @@
 
             <div class="collapse navbar-collapse">
                 <ul class="nav navbar-nav">
-                    <li><a href="#">Översikt</a></li>
-                    <li><a href="#">Hur funkar det?</a></li>
+                    <li><a href="{{ url_for('hur_funkar') }}">Hur funkar det?</a></li>
                 </ul>
             </div>
         </div>
@@ -40,7 +39,7 @@
             <div class="col-xs-5 col-md-6 col-lg-5">
                 <div class="panel panel-default">
                     <div class="panel-body">
-                        <label>Välj kummun:</label>
+                        <label>Välj kommun:</label>
                         <select v-model="selected">
                             {% for region in all_regions %}
                                 <option>{{ region }}</option>
@@ -54,27 +53,37 @@
                         Markerade kommuner
                     </div>
                     <ul class="list-group">
-                        {% raw %}
-                            <li class="list-group-item" v-for="region in regions">{{ region }}</li>
-                        {% endraw %}
-                        <li class="list-group-item" v-if="regions.length == 0">Inga kommuner markerade</li>
+                        <li class="list-group-item">
+                            <select v-model="first_mun">
+                                {% for region in all_regions %}
+                                    <option>{{ region }}</option>
+                                {% endfor %}
+                            </select>
+                        </li>
+                        <li class="list-group-item">
+                            <select v-model="sec_mun">
+                                {% for region in all_regions %}
+                                    <option>{{ region }}</option>
+                                {% endfor %}
+                            </select>
+                        </li>
                     </ul>
-                    <div class="panel-footer" v-if="regions.length > 1">
+                    <div class="panel-footer" v-if="first_mun && sec_mun">
                         <button class="btn btn-default btn-xs" v-on:click="compare">Jämför</button>
                     </div>
                 </div>
 
                 {% raw %}
-                    <div class="panel panel-default" v-if="isComparing && regions.length == 2">
-                        <div class="panel-heading">Jämförelse: {{ regions[0] }} vs. {{ regions[1] }}</div>
+                    <div class="panel panel-default" v-if="isComparing">
+                        <div class="panel-heading">Jämförelse: {{ first_mun }} vs. {{ sec_mun }}</div>
                         <div class="table-responsive">
                             <table class="table table-bordered">
                                 <thead>
                                     <tr>
                                         <th>Nyckeltal</th>
-                                        <th>{{ regions[0] }}</th>
+                                        <th>{{ first_mun }}</th>
                                         <th>Riktning</th>
-                                        <th>{{ regions[1] }}</th>
+                                        <th>{{ sec_mun }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -122,7 +131,7 @@
     <footer class="footer">
       <div class="container">
         <br />
-        <p class="text-muted">Data är hämtat från <a href="https://www.kolada.se/">Kolada</a>.</p>
+        <p class="text-muted">Källa: <a href="https://www.kolada.se/">Kolada</a>.</p>
       </div>
     </footer>
 
@@ -143,29 +152,62 @@
 
             methods: {
                 compare: function(event) {
-                    if (this.regions.length !== 2) {
-                        return;
+                    if (this.first_mun && this.sec_mun) {
+                        self = this;
+                        var url = '/diff_kpis/' + this.first_mun + '/' + this.sec_mun
+                        $.getJSON(url, function(data) {
+                            self.compares = data;
+                            self.isComparing = true;
+                        });
                     }
-                    self = this;
-                    $.getJSON('/diff_kpis/' + this.regions.join('/'), function(data) {
-                        console.log(data[0]);
-                        self.compares = data;
-                        self.isComparing = true;
-                    });
                 }
             },
 
             data: {
-                regions: [],
+                first_mun: null,
+                sec_mun: null,
                 selected: null,
                 kpis: [],
                 compares: [],
-                isComparing: false
+                isComparing: false,
+                cb_obj: undefined
             }
         });
 
-        vue.$watch('selected', function (value) {
-          if (value) {
+        vue.$watch('first_mun', function(value) {
+            this.isComparing = false;
+
+            if (this.cb_obj && this.first_mun) {
+                var indexes = [this.cb_obj.get('data').desc.indexOf(this.first_mun)];
+                if (this.sec_mun) {
+                    indexes.push(this.cb_obj.get('data').desc.indexOf(this.sec_mun))
+                }
+                this.cb_obj.get('selected')['1d'].indices = indexes;
+                this.cb_obj.trigger('change');
+            }
+        });
+
+        vue.$watch('sec_mun', function(value) {
+            this.isComparing = false;
+
+            if (this.cb_obj && this.sec_mun) {
+                var indexes = [this.cb_obj.get('data').desc.indexOf(this.sec_mun)];
+                if (this.sec_mun) {
+                    indexes.push(this.cb_obj.get('data').desc.indexOf(this.first_mun))
+                }
+                this.cb_obj.get('selected')['1d'].indices = indexes;
+                this.cb_obj.trigger('change');
+            }
+        });
+
+        vue.$watch('selected', function(value) {
+            if (value) {
+                if (this.cb_obj) {
+                    var index = this.cb_obj.get('data').desc.indexOf(this.selected);
+                    this.cb_obj.get('selected')['1d'].indices = [index];
+                    this.cb_obj.trigger('change');
+                }
+                this.isComparing = false;
                 self = this
                 $.getJSON('/top_kpis/' + value, function(data) {
                     self.kpis = data;
