@@ -87,7 +87,7 @@ def create_pca_plot():
 
     tools = [HoverTool(
         tooltips=[
-            ("desc", "@desc"),
+            ("Kommun", "@desc"),
         ]
     ), BoxZoomTool(), ResetTool(), TapTool(callback=list_regions)]
 
