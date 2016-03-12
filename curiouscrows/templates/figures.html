@@ -59,7 +59,11 @@
                         {% raw %}
                             <li class="list-group-item" v-for="region in regions">{{ region }}</li>
                         {% endraw %}
+                        <li class="list-group-item" v-if="regions.length == 0">Inga kommuner markerade</li>
                     </ul>
+                    <div class="panel-footer" v-if="regions.length > 1">
+                        <button class="btn btn-default btn-xs">Jämför</button>
+                    </div>
                 </div>
             </div>
         </div>
