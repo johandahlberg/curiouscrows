@@ -7,8 +7,9 @@ from flask.ext.bootstrap import Bootstrap
 
 from bokeh.plotting import figure, ColumnDataSource
 from bokeh.embed import components
-from bokeh.models import (HoverTool, BoxZoomTool, ResetTool, TapTool, CustomJS)
 from bokeh.charts import Bar
+from bokeh.models import (HoverTool, BoxZoomTool, ResetTool, TapTool, CustomJS,
+                          BoxSelectTool)
 
 from sklearn.preprocessing import Imputer, scale
 from sklearn.decomposition import PCA
@@ -56,11 +57,12 @@ def compute_principal_components():
 def create_pca_plot():
     """Render the initial PCA plot with all regions."""
     callback = CustomJS(code="""
-        var index = cb_obj.get('selected')['1d'].indices[0];
-        if (index !== undefined) {
-            var desc = cb_obj.get('data').desc[index];
-            history.pushState({}, '', '#' + desc);
+        var indexes = cb_obj.get('selected')['1d'].indices;
+        var descs = [];
+        for (index in indexes) {
+            descs.push(cb_obj.get('data').desc[indexes[index]]);
         }
+        window.vue.$data.regions = descs;
     """)
 
     tools = [HoverTool(
@@ -69,7 +71,7 @@ def create_pca_plot():
             ("(x,y)", "($x, $y)"),
             ("desc", "@desc"),
         ]
-    ), BoxZoomTool(), ResetTool(), TapTool(callback=callback)]
+    ), BoxZoomTool(), ResetTool(), TapTool(callback=callback), BoxSelectTool(callback=callback)]
 
     source = ColumnDataSource(
         data=dict(
@@ -79,16 +81,26 @@ def create_pca_plot():
         )
     )
 
-    pca_figure = figure(title='PCA plot', plot_width=960, plot_height=600, tools=tools,
-                        responsive=True)
+    plot = figure(title='PCA plot', plot_width=960, plot_height=600,
+              tools=tools, responsive=True)
 
-    pca_figure.circle('x', 'y', size=10, fill_color='navy', source=source, alpha=0.5,
-                      hover_fill_color="firebrick")
+    plot.background_fill_color = 'beige'
+    plot.background_fill_alpha = 0.5
 
-    pca_figure.xaxis.axis_label = "x"
-    pca_figure.yaxis.axis_label = "y"
+    renderer = plot.circle('x', 'y', size=10, source=source,
+                           # set visual properties for selected glyphs
+                           selection_color="firebrick",
 
-    pca_fig_js, pca_fig_div = components(pca_figure)
+                           # set visual properties for non-selected glyphs
+                           nonselection_fill_alpha=0.2,
+                           nonselection_fill_color="blue",
+                           nonselection_line_color="firebrick",
+                           nonselection_line_alpha=1.0)
+
+    plot.xaxis.axis_label = "x"
+    plot.yaxis.axis_label = "y"
+
+    pca_fig_js, pca_fig_div = components(plot)
     return pca_fig_js, pca_fig_div
 
 def create_bar_plot():
@@ -129,7 +141,6 @@ def index():
             pcaFigDiv=pca_fig_div,
             barFigJs=bar_fig_js,
             barFigDiv=bar_fig_div)
-
 
 def start():
     # Get port form environment or default to 5000
