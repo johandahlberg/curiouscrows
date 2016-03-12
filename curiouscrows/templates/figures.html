@@ -8,6 +8,7 @@
     {{ super() }}
     <link href="{{ url_for('static', filename='bokeh-0.11.1.min.css') }}" rel="stylesheet" type="text/css">
     <link href="{{ url_for('static', filename='main.css') }}" rel="stylesheet" type="text/css">
+    <script src="https://cdn.jsdelivr.net/vue/latest/vue.js"></script>
 {% endblock %}
 
 {% block navbar %}
@@ -28,17 +29,38 @@
 {% endblock %}
 
 {% block content %}
-    <div class="container">
-        <div class="bokeh">
-            {{ figDiv|safe }}
+    <div id="app" class="container-fluid">
+        <div class="row">
+            <div class="col-xs-8">
+                <div class="bokeh">
+                    {{ figDiv|safe }}
+                </div>
+            </div>
+            <div class="col-xs-4">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        Markerade kommuner
+                    </div>
+                    <ul class="list-group">
+                        {% raw %}
+                            <li class="list-group-item" v-for="region in regions">{{ region }}</li>
+                        {% endraw %}
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 
     <footer class="footer">
       <div class="container">
-        <p class="text-muted">Place sticky footer content here.</p>
+        <br />
+        <p class="text-muted">Data är hämtat från <a href="https://www.kolada.se/">Kolada</a>.</p>
       </div>
     </footer>
+
+    <script type="text/javascript">
+        window.vue = new Vue({el: '#app', data: { regions: [] }})
+    </script>
 {% endblock %}
 
 {% block scripts %}
