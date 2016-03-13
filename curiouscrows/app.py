@@ -83,6 +83,9 @@ def create_pca_plot():
         window.vue.$data.first_mun = cb_obj.get('data').desc[indexes[0]];
         window.vue.$data.sec_mun = cb_obj.get('data').desc[indexes[1]];
         window.vue.$data.cb_obj = cb_obj
+
+        // trigger responsive plot (why not?)
+        window.dispatchEvent(new Event('resize'));
     """)
 
     tools = [HoverTool(
@@ -106,7 +109,7 @@ def create_pca_plot():
 
     plot.background_fill_color = 'beige'
     plot.background_fill_alpha = 0.5
-    plot.border_fill = '#FCFCFC'
+    plot.border_fill_color = '#FCFCFC'
 
     renderer = plot.circle('x', 'y', size=10, source=source, color='color',
                            # set visual properties for selected glyphs
@@ -224,7 +227,7 @@ def index():
                            all_regions=all_regions)
 
 
-@app.route('/hur')
+@app.route('/hur-funkar-det')
 def hur_funkar():
     return render_template("about.html")
 
