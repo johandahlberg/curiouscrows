@@ -17,6 +17,7 @@
          group: curious-crows
          instance_type: t2.small
          image: ami-87564feb
+         region: eu-central-1
          wait: true
          exact_count: "{{ server_count }}"
          count_tag:
